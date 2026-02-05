@@ -7,63 +7,100 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
-        h1 { color: #333; }
         .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
         .bin-card {
-            background: white; border-radius: 15px; width: 200px; padding: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s;
+            background: white; border-radius: 15px; width: 240px; padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: left;
         }
-        .bin-icon { font-size: 60px; margin-bottom: 10px; }
-        .status { font-weight: bold; font-size: 24px; margin-top: 10px; }
+        .bin-card h2 { text-align: center; margin-top: 0; }
         
-        /* เปลี่ยนสี: ปกติ = เขียว, เต็ม = แดง */
-        .normal { color: #2ecc71; } 
-        .full { color: #e74c3c; animation: blink 1s infinite; } /* เต็มแล้วให้กะพริบ */
+        .status-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin: 15px 0; padding: 10px; border-radius: 8px; background: #f8f9fa;
+        }
+        .label { font-size: 14px; color: #666; }
+        .value { font-weight: bold; font-size: 16px; }
+
+        /* สีสถานะ */
+        .text-green { color: #28a745; }
+        .text-red { color: #dc3545; }
+        .bg-alert { background-color: #ffeeba; animation: blink 1s infinite; }
         
-        @keyframes blink { 50% { opacity: 0.5; } }
+        @keyframes blink { 50% { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
-    <h1>🗑️ ระบบแจ้งเตือนขยะเต็ม (IoT)</h1>
-    <div class="container">
-        <div class="bin-card"><h2 id="name-1">ถังที่ 1</h2><div class="bin-icon" id="icon-1">🗑️</div><div class="status" id="status-1">...</div></div>
-        <div class="bin-card"><h2 id="name-2">ถังที่ 2</h2><div class="bin-icon" id="icon-2">🗑️</div><div class="status" id="status-2">...</div></div>
-        <div class="bin-card"><h2 id="name-3">ถังที่ 3</h2><div class="bin-icon" id="icon-3">🗑️</div><div class="status" id="status-3">...</div></div>
-        <div class="bin-card"><h2 id="name-4">ถังที่ 4</h2><div class="bin-icon" id="icon-4">🗑️</div><div class="status" id="status-4">...</div></div>
-    </div>
+    <h1>🗑️ แดชบอร์ดถังขยะอัจฉริยะ</h1>
+    <div class="container" id="container">
+        </div>
 
     <script>
-        // --- ⚙️ ตั้งค่า SUPABASE (ใช้ค่าเดิม) ---
+        // --- ⚙️ ใส่ KEY ของคุณตรงนี้ ---
         const SUPABASE_URL = 'https://ljatucqreqiazvgwjugp.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4'; // อย่าลืมใส่ Key นะครับ
+        const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4'; 
 
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function updateUI(id, isFull) {
-            const statusElem = document.getElementById(`status-${id}`);
-            const iconElem = document.getElementById(`icon-${id}`);
-            
-            // isFull = true แปลว่าขยะเต็ม (Database ส่งมาเป็น true)
-            if (isFull) {
-                statusElem.innerText = "ขยะเต็ม! (Full)";
-                statusElem.className = "status full";
-                iconElem.innerText = "⛔"; 
+        // สร้างการ์ด 4 ใบ อัตโนมัติ
+        const container = document.getElementById('container');
+        for(let i=1; i<=4; i++) {
+            container.innerHTML += `
+                <div class="bin-card">
+                    <h2>ถังที่ ${i}</h2>
+                    
+                    <div class="status-row">
+                        <span class="label">สถานะฝา:</span>
+                        <span class="value" id="lid-${i}">...</span>
+                    </div>
+
+                    <div class="status-row" id="row-full-${i}">
+                        <span class="label">ความจุ:</span>
+                        <span class="value" id="full-${i}">...</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateUI(id, isOpen, isFull) {
+            // 1. อัปเดตสถานะฝา
+            const lidElem = document.getElementById(`lid-${id}`);
+            if (isOpen) {
+                lidElem.innerHTML = '👐 กำลังเปิด';
+                lidElem.className = 'value text-green';
             } else {
-                statusElem.innerText = "ปกติ (Normal)";
-                statusElem.className = "status normal";
-                iconElem.innerText = "✅"; 
+                lidElem.innerHTML = '🔒 ปิดอยู่';
+                lidElem.className = 'value';
+            }
+
+            // 2. อัปเดตสถานะขยะเต็ม
+            const fullElem = document.getElementById(`full-${id}`);
+            const rowFull = document.getElementById(`row-full-${id}`);
+            
+            if (isFull) {
+                fullElem.innerHTML = '⛔ เต็มแล้ว!';
+                fullElem.className = 'value text-red';
+                rowFull.classList.add('bg-alert'); // ใส่สีพื้นหลังกระพริบ
+            } else {
+                fullElem.innerHTML = '✅ ว่าง';
+                fullElem.className = 'value text-green';
+                rowFull.classList.remove('bg-alert');
             }
         }
 
+        // ดึงข้อมูลครั้งแรก
         async function fetchInitialData() {
             const { data } = await supabase.from('bins').select('*').order('id');
-            if (data) data.forEach(bin => updateUI(bin.id, bin.is_open));
+            if (data) data.forEach(bin => updateUI(bin.id, bin.is_open, bin.is_full));
         }
 
+        // ฟัง Realtime
         supabase.channel('schema-db-changes')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bins' }, 
-            (payload) => updateUI(payload.new.id, payload.new.is_open))
+            (payload) => {
+                // อัปเดตทั้ง 2 ค่าพร้อมกัน
+                updateUI(payload.new.id, payload.new.is_open, payload.new.is_full);
+            })
             .subscribe();
 
         fetchInitialData();
