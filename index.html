@@ -38,9 +38,12 @@
     <script>
         // --- ⚙️ ใส่ KEY ของคุณตรงนี้ ---
         const SUPABASE_URL = 'https://ljatucqreqiazvgwjugp.supabase.co'; 
+        
+        // ใส่ Key ยาวๆ ของคุณลงไปในช่องว่างนี้ (อย่าลืมเครื่องหมายขีด ' หน้า-หลัง)
         const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4'; 
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // --- จุดที่แก้: เปลี่ยนชื่อตัวแปรเป็น client เพื่อไม่ให้ error ---
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // สร้างการ์ด 4 ใบ อัตโนมัติ
         const container = document.getElementById('container');
@@ -80,7 +83,7 @@
             if (isFull) {
                 fullElem.innerHTML = '⛔ เต็มแล้ว!';
                 fullElem.className = 'value text-red';
-                rowFull.classList.add('bg-alert'); // ใส่สีพื้นหลังกระพริบ
+                rowFull.classList.add('bg-alert'); 
             } else {
                 fullElem.innerHTML = '✅ ว่าง';
                 fullElem.className = 'value text-green';
@@ -90,15 +93,14 @@
 
         // ดึงข้อมูลครั้งแรก
         async function fetchInitialData() {
-            const { data } = await supabase.from('bins').select('*').order('id');
+            const { data } = await client.from('bins').select('*').order('id');
             if (data) data.forEach(bin => updateUI(bin.id, bin.is_open, bin.is_full));
         }
 
         // ฟัง Realtime
-        supabase.channel('schema-db-changes')
+        client.channel('schema-db-changes')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bins' }, 
             (payload) => {
-                // อัปเดตทั้ง 2 ค่าพร้อมกัน
                 updateUI(payload.new.id, payload.new.is_open, payload.new.is_full);
             })
             .subscribe();
