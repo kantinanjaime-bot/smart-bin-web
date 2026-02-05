@@ -13,47 +13,36 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: left;
         }
         .bin-card h2 { text-align: center; margin-top: 0; }
-        
         .status-row { 
             display: flex; justify-content: space-between; align-items: center; 
             margin: 15px 0; padding: 10px; border-radius: 8px; background: #f8f9fa;
         }
         .label { font-size: 14px; color: #666; }
         .value { font-weight: bold; font-size: 16px; }
-
-        /* สีสถานะ */
         .text-green { color: #28a745; }
         .text-red { color: #dc3545; }
         .bg-alert { background-color: #ffeeba; animation: blink 1s infinite; }
-        
         @keyframes blink { 50% { opacity: 0.6; } }
     </style>
 </head>
 <body>
-
     <h1>🗑️ ถังขยะอัตโนมัติ</h1>
-    <div class="container" id="container">
-        </div>
+    <div class="container" id="container"></div>
 
     <script>
-        // --- ⚙️ ตั้งค่า (ใส่ให้แล้ว) ---
         const SUPABASE_URL = 'https://ljatucqreqiazvgwjugp.supabase.co'; 
         const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4'; 
 
         const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // สร้างการ์ด 4 ใบ อัตโนมัติ
         const container = document.getElementById('container');
         for(let i=1; i<=4; i++) {
             container.innerHTML += `
                 <div class="bin-card">
                     <h2>ถังที่ ${i}</h2>
-                    
                     <div class="status-row">
                         <span class="label">สถานะฝา:</span>
                         <span class="value" id="lid-${i}">...</span>
                     </div>
-
                     <div class="status-row" id="row-full-${i}">
                         <span class="label">ปริมาณในถังขยะ:</span>
                         <span class="value" id="full-${i}">...</span>
@@ -63,40 +52,25 @@
         }
 
         function updateUI(id, isOpen, isFull) {
-            // 1. อัปเดตสถานะฝา
             const lidElem = document.getElementById(`lid-${id}`);
-            if (isOpen) {
-                lidElem.innerHTML = '👐 กำลังเปิด';
-                lidElem.className = 'value text-green';
-            } else {
-                lidElem.innerHTML = '🔒 ปิดอยู่';
-                lidElem.className = 'value';
-            }
+            if (isOpen) { lidElem.innerHTML = '👐 กำลังเปิด'; lidElem.className = 'value text-green'; }
+            else { lidElem.innerHTML = '🔒 ปิดอยู่'; lidElem.className = 'value'; }
 
-            // 2. อัปเดตสถานะขยะเต็ม
             const fullElem = document.getElementById(`full-${id}`);
             const rowFull = document.getElementById(`row-full-${id}`);
-            
-            if (isFull) {
-                fullElem.innerHTML = '⛔ เต็มแล้ว!';
-                fullElem.className = 'value text-red';
-                rowFull.classList.add('bg-alert'); 
-            } else {
-                fullElem.innerHTML = '✅ ว่าง';
-                fullElem.className = 'value text-green';
-                rowFull.classList.remove('bg-alert');
-            }
+            if (isFull) { fullElem.innerHTML = '⛔ เต็มแล้ว!'; fullElem.className = 'value text-red'; rowFull.classList.add('bg-alert'); }
+            else { fullElem.innerHTML = '✅ ว่าง'; fullElem.className = 'value text-green'; rowFull.classList.remove('bg-alert'); }
         }
 
-        // ดึงข้อมูลครั้งแรก
         async function fetchInitialData() {
-            const { data } = await client.from('bins').select('*').order('id');
+            // --- แก้จุดที่ 1: bins -> Bins ---
+            const { data } = await client.from('Bins').select('*').order('id');
             if (data) data.forEach(bin => updateUI(bin.id, bin.is_open, bin.is_full));
         }
 
-        // ฟัง Realtime
+        // --- แก้จุดที่ 2: bins -> Bins ---
         client.channel('schema-db-changes')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bins' }, 
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'Bins' }, 
             (payload) => {
                 updateUI(payload.new.id, payload.new.is_open, payload.new.is_full);
             })
@@ -104,6 +78,5 @@
 
         fetchInitialData();
     </script>
-
 </body>
 </html>
