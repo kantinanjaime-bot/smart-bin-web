@@ -36,13 +36,10 @@
         </div>
 
     <script>
-        // --- ⚙️ ใส่ KEY ของคุณตรงนี้ ---
+        // --- ⚙️ ตั้งค่า (ใส่ให้แล้ว) ---
         const SUPABASE_URL = 'https://ljatucqreqiazvgwjugp.supabase.co'; 
-        
-        // ใส่ Key ยาวๆ ของคุณลงไปในช่องว่างนี้ (อย่าลืมเครื่องหมายขีด ' หน้า-หลัง)
         const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4'; 
 
-        // --- จุดที่แก้: เปลี่ยนชื่อตัวแปรเป็น client เพื่อไม่ให้ error ---
         const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // สร้างการ์ด 4 ใบ อัตโนมัติ
@@ -58,7 +55,7 @@
                     </div>
 
                     <div class="status-row" id="row-full-${i}">
-                        <span class="label">ความจุ:</span>
+                        <span class="label">ปริมาณในถังขยะ:</span>
                         <span class="value" id="full-${i}">...</span>
                     </div>
                 </div>
