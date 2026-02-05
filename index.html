@@ -40,7 +40,7 @@
         const SUPABASE_URL = 'https://ljatucqreqiazvgwjugp.supabase.co'; 
         const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4'; 
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // สร้างการ์ด 4 ใบ อัตโนมัติ
         const container = document.getElementById('container');
