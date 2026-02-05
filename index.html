@@ -15,85 +15,57 @@
         }
         .bin-icon { font-size: 60px; margin-bottom: 10px; }
         .status { font-weight: bold; font-size: 24px; margin-top: 10px; }
-        .open { color: #2ecc71; } /* สีเขียว */
-        .closed { color: #e74c3c; } /* สีแดง */
+        
+        /* เปลี่ยนสี: ปกติ = เขียว, เต็ม = แดง */
+        .normal { color: #2ecc71; } 
+        .full { color: #e74c3c; animation: blink 1s infinite; } /* เต็มแล้วให้กะพริบ */
+        
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
-    <h1>🗑️ สถานะถังขยะเรียลไทม์</h1>
-    <div class="container" id="bins-container">
-        <div class="bin-card" id="card-1">
-            <h2>ถังที่ 1</h2>
-            <div class="bin-icon" id="icon-1">♻️</div>
-            <div class="status" id="status-1">รอข้อมูล...</div>
-        </div>
-        <div class="bin-card" id="card-2">
-            <h2>ถังที่ 2</h2>
-            <div class="bin-icon" id="icon-2">♻️</div>
-            <div class="status" id="status-2">รอข้อมูล...</div>
-        </div>
-        <div class="bin-card" id="card-3">
-            <h2>ถังที่ 3</h2>
-            <div class="bin-icon" id="icon-3">♻️</div>
-            <div class="status" id="status-3">รอข้อมูล...</div>
-        </div>
-        <div class="bin-card" id="card-4">
-            <h2>ถังที่ 4</h2>
-            <div class="bin-icon" id="icon-4">♻️</div>
-            <div class="status" id="status-4">รอข้อมูล...</div>
-        </div>
+    <h1>🗑️ ระบบแจ้งเตือนขยะเต็ม (IoT)</h1>
+    <div class="container">
+        <div class="bin-card"><h2 id="name-1">ถังที่ 1</h2><div class="bin-icon" id="icon-1">🗑️</div><div class="status" id="status-1">...</div></div>
+        <div class="bin-card"><h2 id="name-2">ถังที่ 2</h2><div class="bin-icon" id="icon-2">🗑️</div><div class="status" id="status-2">...</div></div>
+        <div class="bin-card"><h2 id="name-3">ถังที่ 3</h2><div class="bin-icon" id="icon-3">🗑️</div><div class="status" id="status-3">...</div></div>
+        <div class="bin-card"><h2 id="name-4">ถังที่ 4</h2><div class="bin-icon" id="icon-4">🗑️</div><div class="status" id="status-4">...</div></div>
     </div>
 
     <script>
-        // --- ⚙️ ตั้งค่า SUPABASE ตรงนี้ (เอาค่าจากเว็บมาใส่) ---
-        
-        // 1. เอา Project URL มาใส่ในเครื่องหมาย ' '
+        // --- ⚙️ ตั้งค่า SUPABASE (ใช้ค่าเดิม) ---
         const SUPABASE_URL = 'https://ljatucqreqiazvgwjugp.supabase.co'; 
-        
-        // 2. เอา Publishable Key (อันยาวๆ) มาใส่ในเครื่องหมาย ' '
-        const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4';
+        const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4'; // อย่าลืมใส่ Key นะครับ
 
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ฟังก์ชันอัปเดตหน้าจอ
-        function updateUI(id, isOpen) {
+        function updateUI(id, isFull) {
             const statusElem = document.getElementById(`status-${id}`);
             const iconElem = document.getElementById(`icon-${id}`);
             
-            if (isOpen) {
-                statusElem.innerText = "OPEN";
-                statusElem.className = "status open";
-                iconElem.innerText = "👐"; // ไอคอนตอนเปิด
+            // isFull = true แปลว่าขยะเต็ม (Database ส่งมาเป็น true)
+            if (isFull) {
+                statusElem.innerText = "ขยะเต็ม! (Full)";
+                statusElem.className = "status full";
+                iconElem.innerText = "⛔"; 
             } else {
-                statusElem.innerText = "CLOSED";
-                statusElem.className = "status closed";
-                iconElem.innerText = "🔒"; // ไอคอนตอนปิด
+                statusElem.innerText = "ปกติ (Normal)";
+                statusElem.className = "status normal";
+                iconElem.innerText = "✅"; 
             }
         }
 
-        // 1. ดึงข้อมูลครั้งแรกเมื่อเปิดเว็บ
         async function fetchInitialData() {
-            const { data, error } = await supabase.from('bins').select('*').order('id');
-            if (data) {
-                data.forEach(bin => updateUI(bin.id, bin.is_open));
-            }
+            const { data } = await supabase.from('bins').select('*').order('id');
+            if (data) data.forEach(bin => updateUI(bin.id, bin.is_open));
         }
 
-        // 2. ตั้งค่า Realtime Listener (ฟังเสียงจาก Server)
-        const channel = supabase
-            .channel('schema-db-changes')
-            .on(
-                'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'bins' },
-                (payload) => {
-                    console.log('มีการเปลี่ยนแปลง!', payload);
-                    updateUI(payload.new.id, payload.new.is_open);
-                }
-            )
+        supabase.channel('schema-db-changes')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bins' }, 
+            (payload) => updateUI(payload.new.id, payload.new.is_open))
             .subscribe();
 
-        // เริ่มทำงาน
         fetchInitialData();
     </script>
 
