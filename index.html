@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Trash Bins Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
+        h1 { color: #333; }
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        .bin-card {
+            background: white; border-radius: 15px; width: 200px; padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s;
+        }
+        .bin-icon { font-size: 60px; margin-bottom: 10px; }
+        .status { font-weight: bold; font-size: 24px; margin-top: 10px; }
+        .open { color: #2ecc71; } /* สีเขียว */
+        .closed { color: #e74c3c; } /* สีแดง */
+    </style>
+</head>
+<body>
+
+    <h1>🗑️ สถานะถังขยะเรียลไทม์</h1>
+    <div class="container" id="bins-container">
+        <div class="bin-card" id="card-1">
+            <h2>ถังที่ 1</h2>
+            <div class="bin-icon" id="icon-1">♻️</div>
+            <div class="status" id="status-1">รอข้อมูล...</div>
+        </div>
+        <div class="bin-card" id="card-2">
+            <h2>ถังที่ 2</h2>
+            <div class="bin-icon" id="icon-2">♻️</div>
+            <div class="status" id="status-2">รอข้อมูล...</div>
+        </div>
+        <div class="bin-card" id="card-3">
+            <h2>ถังที่ 3</h2>
+            <div class="bin-icon" id="icon-3">♻️</div>
+            <div class="status" id="status-3">รอข้อมูล...</div>
+        </div>
+        <div class="bin-card" id="card-4">
+            <h2>ถังที่ 4</h2>
+            <div class="bin-icon" id="icon-4">♻️</div>
+            <div class="status" id="status-4">รอข้อมูล...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- ⚙️ ตั้งค่า SUPABASE ตรงนี้ (เอาค่าจากเว็บมาใส่) ---
+        
+        // 1. เอา Project URL มาใส่ในเครื่องหมาย ' '
+        const SUPABASE_URL = 'https://ljatucqreqiazvgwjugp.supabase.co'; 
+        
+        // 2. เอา Publishable Key (อันยาวๆ) มาใส่ในเครื่องหมาย ' '
+        const SUPABASE_KEY = 'sb_publishable_Aoo9e4gK8_aQn1-GiKVOAA_WDf7iDS4';
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ฟังก์ชันอัปเดตหน้าจอ
+        function updateUI(id, isOpen) {
+            const statusElem = document.getElementById(`status-${id}`);
+            const iconElem = document.getElementById(`icon-${id}`);
+            
+            if (isOpen) {
+                statusElem.innerText = "OPEN";
+                statusElem.className = "status open";
+                iconElem.innerText = "👐"; // ไอคอนตอนเปิด
+            } else {
+                statusElem.innerText = "CLOSED";
+                statusElem.className = "status closed";
+                iconElem.innerText = "🔒"; // ไอคอนตอนปิด
+            }
+        }
+
+        // 1. ดึงข้อมูลครั้งแรกเมื่อเปิดเว็บ
+        async function fetchInitialData() {
+            const { data, error } = await supabase.from('bins').select('*').order('id');
+            if (data) {
+                data.forEach(bin => updateUI(bin.id, bin.is_open));
+            }
+        }
+
+        // 2. ตั้งค่า Realtime Listener (ฟังเสียงจาก Server)
+        const channel = supabase
+            .channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'bins' },
+                (payload) => {
+                    console.log('มีการเปลี่ยนแปลง!', payload);
+                    updateUI(payload.new.id, payload.new.is_open);
+                }
+            )
+            .subscribe();
+
+        // เริ่มทำงาน
+        fetchInitialData();
+    </script>
+
+</body>
+</html>
