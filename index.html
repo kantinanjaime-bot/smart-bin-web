@@ -17,7 +17,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: left;
             transition: opacity 0.3s;
         }
-        .bin-offline { opacity: 0.6; filter: grayscale(100%); } /* ทำให้การ์ดจางเมื่อ Offline */
+        .bin-offline { opacity: 0.6; filter: grayscale(100%); } /* หน้าจอเทาเมื่อ Offline */
         
         .bin-card h2 { text-align: center; margin-top: 0; }
         .status-row { 
@@ -46,7 +46,7 @@
         const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const container = document.getElementById('container');
         
-        let lastUpdateTime = 0; // เก็บเวลาล่าสุดที่ถังขยะติดต่อมา
+        let lastUpdateTime = 0; // เก็บเวลาล่าสุด
 
         // สร้างการ์ด 4 ใบ
         for(let i=1; i<=4; i++) {
@@ -66,7 +66,7 @@
         }
 
         function updateUI(id, isOpen, isFull, timestamp) {
-            // อัปเดตเวลาล่าสุดที่ได้รับข้อมูล
+            // เมื่อมีข้อมูลใหม่ ให้อัปเดตเวลาล่าสุดทันที
             if(timestamp) {
                 const time = new Date(timestamp).getTime();
                 if(time > lastUpdateTime) lastUpdateTime = time;
@@ -82,15 +82,15 @@
             else { fullElem.innerHTML = '✅ ว่าง'; fullElem.className = 'value text-green'; rowFull.classList.remove('bg-alert'); }
         }
 
-        // ฟังก์ชันเช็ค Online/Offline (แก้ให้แสดงแค่คำสั้นๆ ตามที่ขอ)
+        // --- จุดที่แก้: เช็คถี่ยิบทุก 0.2 วินาที และตัดที่ 3.5 วินาที ---
         setInterval(() => {
             const now = new Date().getTime();
             const diffSeconds = (now - lastUpdateTime) / 1000;
             const statusDiv = document.getElementById('system-status');
             const cards = document.querySelectorAll('.bin-card');
 
-            // ถ้าเกิน 15 วินาที ไม่มีการติดต่อ -> Offline
-            if (lastUpdateTime > 0 && diffSeconds > 15) {
+            // ถ้าเงียบเกิน 3.5 วิ = ดับ
+            if (lastUpdateTime > 0 && diffSeconds > 3.5) {
                 statusDiv.innerHTML = `🔴 OFFLINE`; 
                 statusDiv.className = 'header-status offline';
                 cards.forEach(card => card.classList.add('bin-offline'));
@@ -99,10 +99,9 @@
                 statusDiv.className = 'header-status online';
                 cards.forEach(card => card.classList.remove('bin-offline'));
             }
-        }, 1000);
+        }, 200);
 
         async function fetchInitialData() {
-            // ดึงข้อมูลครั้งแรก
             const { data } = await client.from('Bins').select('*').order('id');
             if (data) {
                 data.forEach(bin => {
