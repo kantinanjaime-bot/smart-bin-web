@@ -17,7 +17,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: left;
             transition: opacity 0.3s;
         }
-        .bin-offline { opacity: 0.6; filter: grayscale(100%); } /* สไตล์ตอนออฟไลน์ */
+        .bin-offline { opacity: 0.6; filter: grayscale(100%); } /* ทำให้การ์ดจางเมื่อ Offline */
         
         .bin-card h2 { text-align: center; margin-top: 0; }
         .status-row { 
@@ -35,7 +35,7 @@
 <body>
     <h1>🗑️ ถังขยะอัตโนมัติ</h1>
     
-    <div class="header-status" id="system-status">กำลังตรวจสอบการเชื่อมต่อ...</div>
+    <div class="header-status" id="system-status">กำลังตรวจสอบ...</div>
 
     <div class="container" id="container"></div>
 
@@ -82,7 +82,7 @@
             else { fullElem.innerHTML = '✅ ว่าง'; fullElem.className = 'value text-green'; rowFull.classList.remove('bg-alert'); }
         }
 
-        // ฟังก์ชันเช็ค Online/Offline (ทำงานทุก 1 วินาที)
+        // ฟังก์ชันเช็ค Online/Offline (แก้ให้แสดงแค่คำสั้นๆ ตามที่ขอ)
         setInterval(() => {
             const now = new Date().getTime();
             const diffSeconds = (now - lastUpdateTime) / 1000;
@@ -91,19 +91,18 @@
 
             // ถ้าเกิน 15 วินาที ไม่มีการติดต่อ -> Offline
             if (lastUpdateTime > 0 && diffSeconds > 15) {
-                statusDiv.innerHTML = `🔴 ระบบ OFFLINE (ขาดการติดต่อ ${Math.floor(diffSeconds)} วิ)`;
+                statusDiv.innerHTML = `🔴 OFFLINE`; 
                 statusDiv.className = 'header-status offline';
-                // ทำให้การ์ดดูจางๆ
                 cards.forEach(card => card.classList.add('bin-offline'));
             } else if (lastUpdateTime > 0) {
-                statusDiv.innerHTML = `🟢 ระบบ ONLINE (อัปเดตเมื่อ ${Math.floor(diffSeconds)} วิที่แล้ว)`;
+                statusDiv.innerHTML = `🟢 ONLINE`; 
                 statusDiv.className = 'header-status online';
                 cards.forEach(card => card.classList.remove('bin-offline'));
             }
         }, 1000);
 
         async function fetchInitialData() {
-            // ดึงข้อมูลครั้งแรก พร้อมเวลา last_updated
+            // ดึงข้อมูลครั้งแรก
             const { data } = await client.from('Bins').select('*').order('id');
             if (data) {
                 data.forEach(bin => {
@@ -115,7 +114,6 @@
         client.channel('schema-db-changes')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'Bins' }, 
             (payload) => {
-                // เมื่อมีข้อมูลใหม่เข้ามา (รวมถึง Heartbeat)
                 updateUI(payload.new.id, payload.new.is_open, payload.new.is_full, payload.new.last_updated);
             })
             .subscribe();
