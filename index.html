@@ -7,8 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
-        .header-status { font-size: 18px; margin-bottom: 5px; font-weight: bold; }
-        .debug-text { font-size: 12px; color: #888; margin-bottom: 20px; } /* ตัวเลขจับเวลา */
+        .header-status { font-size: 18px; margin-bottom: 20px; font-weight: bold; }
         .online { color: #28a745; }
         .offline { color: #dc3545; }
         
@@ -37,7 +36,6 @@
     <h1>🗑️ ถังขยะอัตโนมัติ</h1>
     
     <div class="header-status" id="system-status">กำลังตรวจสอบ...</div>
-    <div class="debug-text" id="debug-timer">รอสัญญาณ...</div>
 
     <div class="container" id="container"></div>
 
@@ -50,6 +48,7 @@
         
         let lastUpdateTime = 0; 
 
+        // สร้างการ์ด 4 ใบ
         for(let i=1; i<=4; i++) {
             container.innerHTML += `
                 <div class="bin-card" id="card-${i}">
@@ -69,7 +68,6 @@
         function updateUI(id, isOpen, isFull, timestamp) {
             if(timestamp) {
                 const time = new Date(timestamp).getTime();
-                // รับค่าเวลามาแล้วอัปเดตทันที
                 if(time > lastUpdateTime) lastUpdateTime = time;
             }
 
@@ -83,19 +81,13 @@
             else { fullElem.innerHTML = '✅ ว่าง'; fullElem.className = 'value text-green'; rowFull.classList.remove('bg-alert'); }
         }
 
-        // เช็ค Online/Offline
+        // ระบบจับเวลา (ทำงานเบื้องหลัง ไม่โชว์ตัวเลข)
         setInterval(() => {
             const now = new Date().getTime();
-            const diffSeconds = (now - lastUpdateTime) / 1000; // แปลงเป็นวินาที
+            const diffSeconds = (now - lastUpdateTime) / 1000;
             
             const statusDiv = document.getElementById('system-status');
-            const debugDiv = document.getElementById('debug-timer');
             const cards = document.querySelectorAll('.bin-card');
-
-            // โชว์ตัวเลขให้เห็นกันชัดๆ ว่าผ่านไปกี่วิแล้ว
-            if (lastUpdateTime > 0) {
-                debugDiv.innerHTML = `ขาดการติดต่อ: ${diffSeconds.toFixed(1)} วินาที`;
-            }
 
             // ถ้าเกิน 3.5 วินาที -> OFFLINE
             if (lastUpdateTime > 0 && diffSeconds > 3.5) {
@@ -107,7 +99,7 @@
                 statusDiv.className = 'header-status online';
                 cards.forEach(card => card.classList.remove('bin-offline'));
             }
-        }, 100); // อัปเดตหน้าจอถี่ๆ ทุก 0.1 วินาที
+        }, 100); // เช็คถี่ๆ ทุก 0.1 วินาที เพื่อความแม่นยำ
 
         async function fetchInitialData() {
             const { data } = await client.from('Bins').select('*').order('id');
