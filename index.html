@@ -48,7 +48,6 @@
         
         let lastUpdateTime = 0; 
 
-        // สร้างการ์ด 4 ใบ
         for(let i=1; i<=4; i++) {
             container.innerHTML += `
                 <div class="bin-card" id="card-${i}">
@@ -81,7 +80,6 @@
             else { fullElem.innerHTML = '✅ ว่าง'; fullElem.className = 'value text-green'; rowFull.classList.remove('bg-alert'); }
         }
 
-        // ระบบจับเวลา (ทำงานเบื้องหลัง ไม่โชว์ตัวเลข)
         setInterval(() => {
             const now = new Date().getTime();
             const diffSeconds = (now - lastUpdateTime) / 1000;
@@ -89,8 +87,8 @@
             const statusDiv = document.getElementById('system-status');
             const cards = document.querySelectorAll('.bin-card');
 
-            // ถ้าเกิน 3.5 วินาที -> OFFLINE
-            if (lastUpdateTime > 0 && diffSeconds > 3.5) {
+            // ✨ แก้ให้รอ 12 วินาที ถึงจะมองว่า Offline (แก้ปัญหาเน็ตสะอึก)
+            if (lastUpdateTime > 0 && diffSeconds > 12) {
                 statusDiv.innerHTML = `🔴 OFFLINE`; 
                 statusDiv.className = 'header-status offline';
                 cards.forEach(card => card.classList.add('bin-offline'));
@@ -99,7 +97,7 @@
                 statusDiv.className = 'header-status online';
                 cards.forEach(card => card.classList.remove('bin-offline'));
             }
-        }, 100); // เช็คถี่ๆ ทุก 0.1 วินาที เพื่อความแม่นยำ
+        }, 500); 
 
         async function fetchInitialData() {
             const { data } = await client.from('Bins').select('*').order('id');
